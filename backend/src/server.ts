@@ -1,7 +1,9 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import routes from './routes';
+import type{ Request, Response } from 'express';
+
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const routes = require('./routes');
 
 // Loads the environment variables
 dotenv.config();
@@ -15,7 +17,7 @@ app.use(cors());
 app.use(express.json());
 
 // Checks endpoint health
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (req: Request, res: Response) => {
     res.json({
         status: 'ok',
         message: 'Server is running.'
@@ -27,5 +29,5 @@ app.use('/api', routes);
 
 // Start server
 app.listen(PORT, () => {
-    console.log('Server running on http://localhost:{PORT}');
+    console.log(`Server running on http://localhost:${PORT}`);
 });
