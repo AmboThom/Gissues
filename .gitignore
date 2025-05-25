@@ -25,3 +25,6 @@ dist-ssr
 
 # Environmental files
 *.env
+
+# Journal File
+Journal.md
