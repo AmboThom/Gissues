@@ -28,3 +28,7 @@ dist-ssr
 
 # Journal File
 Journal.md
+
+# Virtual Environment
+venv/
+ai-service/venv/
