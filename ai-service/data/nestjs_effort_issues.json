@@ -1,0 +1,450 @@
+{
+  "easy": [
+    {
+      "number": 14070,
+      "title": "Improved error messages for file validtors",
+      "body": "### Is there an existing issue that is already proposing this?\n\n- [X] I have searched the existing issues\n\n### Is your feature request related to a problem? Please describe it\n\nNot related to an explicit bug in Nest.js - this is an enhancement request\n\n### Describe the solution you'd like\n\nWithin the `FileTypeValidator`\r\nhttps://github.com/nestjs/nest/blob/198eaf7e5c64cf496ad6ddd97b4013d741cf517f/packages/common/pipes/file/file-type.validator.ts#L23-L25\r\n\r\nto change the `buildErrorMessage()` method to:\r\n- take in the `file: any` input supported by the `FileValidator`\r\n- use that to also log the actual `file?.type` which was observed - to make troubleshooting easier\r\n\r\nWhile we are at it, the MaxFileSizeValidator\r\nhttps://github.com/nestjs/nest/blob/198eaf7e5c64cf496ad6ddd97b4013d741cf517f/packages/common/pipes/file/max-file-size.validator.ts#L20-L27\r\ncould also be modified to improve its error message to show the actual file size, in addition to the expected file size\n\n### Teachability, documentation, adoption, migration strategy\n\nfor the changelog:\r\nImproved error messages for MaxSizeValidator and FileTypeValidator to include the observed actual size or filetype.\n\n### What is the motivation / use case for changing the behavior?\n\nWe are using the FileTypeValidator() within a @UploadedFile - and are getting errors in production where the user is uploading the wrong file type, and triggering this validator.  However, the error message we see in our logs is: `BadRequestException: Validation failed (expected type is .(png|jpeg|jpg|pdf))` - which does not describe the actual file type that the user actually used.",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: common",
+        "effort1: hours",
+        "priority: very low (5)"
+      ],
+      "state": "closed",
+      "created_at": "2024-10-17T10:45:54Z",
+      "comments": 3
+    },
+    {
+      "number": 13910,
+      "title": "Socket.IO Adapter Close causes premature HTTP Server close() call and blocks application shutdown",
+      "body": "On Nest application shutdown, ``close()`` is called on the socket.io server [here](https://github.com/nestjs/nest/blob/e4b07eb06b406183e708269e0439f442a1dadb1c/packages/websockets/adapters/ws-adapter.ts#L39).\r\n\r\nInternally *socket.io* will now disconnect all sockets handled by itself, **then calls close() on the underlying http server** [here](https://github.com/socketio/socket.io/blob/5d9a2d554440f69a0b729e276cc2578a10a173e5/packages/socket.io/lib/index.ts#L764).\r\n\r\nThis is a problem because now we are blocking until all connections on the underlying http server are closed, but before the nest application has any chance to run logic that would disconnect other long-running connections. That means that if there's a long running connection that wasn't handled by that socket.io adapter, we now block forever. \r\n\r\nFor instance [this](https://github.com/nestjs/nest/blob/e4b07eb06b406183e708269e0439f442a1dadb1c/packages/platform-express/adapters/express-adapter.ts#L438) disconnect logic is never reached.",
+      "labels": [
+        "type: bug :sob:",
+        "scope: websockets",
+        "effort1: hours",
+        "state: community",
+        "priority: medium (3)"
+      ],
+      "state": "closed",
+      "created_at": "2024-08-25T07:27:22Z",
+      "comments": 8
+    },
+    {
+      "number": 11945,
+      "title": "New 'fatal' log level for critical unrecoverable application errors (as opposed to standard user 'error' level)",
+      "body": "### Is there an existing issue that is already proposing this?\r\n\r\n- [X] I have searched the existing issues\r\n\r\n### Is your feature request related to a problem? Please describe it\r\n\r\nI find it not super convenient having to combine both critical application errors (e.g. application code bug, or application logic bug) AND user interaction errors (e.g. user trying to do something not supported by the application, or perhaps bad user inputs even though those could be mapped to less critical log levels such as verbose, debug, info or warn..).\r\n\r\n### Describe the solution you'd like\r\n\r\nA new 'fatal' (or 'critical') log level introduced and leveraged in the default ootb nestjs logger classes (Logger, ConsoleLogger, LoggerService, etc), which would now allow to easily differentiate/isolate application 'fatal' from 'error' problems.\r\n\r\n### Teachability, documentation, adoption, migration strategy\r\n\r\nVery simple doc update to introduce a new method signature in the LoggerService code snippet [listed here](https://docs.nestjs.com/techniques/logger#custom-implementation).\r\n\r\nNo migration strategy needed, since this remains backward compatible, e.g. no breaking change introduced. Users can simply start leveraging the new 'fatal/critical' log level, if they want/need to. All their existing code relying on all other existing and kept log levels will still work.\r\n\r\n### What is the motivation / use case for changing the behavior?\r\n\r\nIn the end, if ALL application errors end up being identified all the same, e.g. under ERROR log level, then it makes it hard for us apps developers to quickly identify which of all these potential errors are actual critical unrecoverable application errors that require our immediate attention and will require actual application code or configuration fix or else they'll continue to generate errors to users trying the same functionality.",
+      "labels": [
+        "type: enhancement :wolf:",
+        "effort1: hours",
+        "priority: low (4)"
+      ],
+      "state": "closed",
+      "created_at": "2023-06-29T16:53:14Z",
+      "comments": 3
+    },
+    {
+      "number": 11601,
+      "title": "Possible memory leak when using server side events",
+      "body": "### Is there an existing issue for this?\n\n- [X] I have searched the existing issues\n\n### Current behavior\n\nI use Server-Sent Events for one of my routes and then push db changes for subscribed users. The functionality works fine, but as soon as the event count is 10k for example, the error appears: \r\n\r\n`(node:43243) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 101 drain listeners added to [SseStream]. Use emitter.setMaxListeners() to increase limit\r\n`\n\n### Minimum reproduction code\n\nhttps://gist.github.com/ggagosh/0850fd0100f17e2bc040095a917c0342\n\n### Steps to reproduce\n\n_No response_\n\n### Expected behavior\n\nI suppose should work without any warning\n\n### Package\n\n- [ ] I don't know. Or some 3rd-party package\n- [X] <code>@nestjs/common</code>\n- [ ] <code>@nestjs/core</code>\n- [ ] <code>@nestjs/microservices</code>\n- [ ] <code>@nestjs/platform-express</code>\n- [ ] <code>@nestjs/platform-fastify</code>\n- [ ] <code>@nestjs/platform-socket.io</code>\n- [ ] <code>@nestjs/platform-ws</code>\n- [ ] <code>@nestjs/testing</code>\n- [ ] <code>@nestjs/websockets</code>\n- [ ] Other (see below)\n\n### Other package\n\n_No response_\n\n### NestJS version\n\n^9.0.0\n\n### Packages versions\n\n```json\r\n\"@nestjs/common\": \"^9.0.0\",\r\n\"@nestjs/config\": \"2.3.1\",\r\n\"@nestjs/core\": \"^9.0.0\",\r\n\"@nestjs/event-emitter\": \"^1.4.1\",\r\n\"@nestjs/graphql\": \"^11.0.5\",\r\n\"@nestjs/jwt\": \"10.0.3\",\r\n\"@nestjs/mongoose\": \"^9.2.2\",\r\n\"@nestjs/passport\": \"9.0.3\",\r\n\"@nestjs/platform-express\": \"^9.0.0\",\r\n\"@nestjs/swagger\": \"6.3.0\",\r\n\"@nestjs/terminus\": \"^9.2.2\",\r\n```\r\n\n\n### Node.js version\n\n18.16.0\n\n### In which operating systems have you tested?\n\n- [X] macOS\n- [ ] Windows\n- [ ] Linux\n\n### Other\n\n_No response_",
+      "labels": [
+        "scope: core",
+        "type: potential issue \ud83d\udc94",
+        "effort1: hours",
+        "priority: medium (3)"
+      ],
+      "state": "closed",
+      "created_at": "2023-05-05T17:19:49Z",
+      "comments": 26
+    },
+    {
+      "number": 11416,
+      "title": "Disgraceful shutdown, request before signal interrupted with ECONNREFUSED",
+      "body": "### Is there an existing issue for this?\n\n- [X] I have searched the existing issues\n\n### Current behavior\n\nWhen the application is shutdown (e.g. with SIGTERM shutdown hook), requests that started before shutdown fail with ECONNREFUSED.\n\n### Minimum reproduction code\n\nhttps://github.com/soryy708/nestjs-disgraceful-shutdown-mcve\n\n### Steps to reproduce\n\n1. Install dependencies by running `yarn install`\r\n2. Run the tests by running `yarn test`\n\n### Expected behavior\n\nRequests that started before shutdown should succeed, only new requests after shutdown should fail.\n\n### Package\n\n- [ ] I don't know. Or some 3rd-party package\n- [X] <code>@nestjs/common</code>\n- [X] <code>@nestjs/core</code>\n- [ ] <code>@nestjs/microservices</code>\n- [X] <code>@nestjs/platform-express</code>\n- [ ] <code>@nestjs/platform-fastify</code>\n- [ ] <code>@nestjs/platform-socket.io</code>\n- [ ] <code>@nestjs/platform-ws</code>\n- [X] <code>@nestjs/testing</code>\n- [ ] <code>@nestjs/websockets</code>\n- [ ] Other (see below)\n\n### Other package\n\n_No response_\n\n### NestJS version\n\n9.3.12\n\n### Packages versions\n\n```json\r\n{\r\n\"@nestjs/axios\": \"^2.0.0\",\r\n\"@nestjs/common\": \"^9.3.12\",\r\n\"@nestjs/core\": \"^9.3.12\",\r\n\"@nestjs/platform-express\": \"^9.3.12\",\r\n\"@nestjs/terminus\": \"^9.2.2\",\r\n\"@nestjs/testing\": \"^9.3.12\",\r\n}\r\n```\r\n\n\n### Node.js version\n\n16.19.0\n\n### In which operating systems have you tested?\n\n- [X] macOS\n- [ ] Windows\n- [ ] Linux\n\n### Other\n\n_No response_",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: core",
+        "scope: platform",
+        "effort1: hours"
+      ],
+      "state": "open",
+      "created_at": "2023-04-02T13:38:44Z",
+      "comments": 25
+    },
+    {
+      "number": 10878,
+      "title": "Possible incorrect verbose log level priority",
+      "body": "### Is there an existing issue for this?\n\n- [X] I have searched the existing issues\n\n### Current behavior\n\nCurrently Nest JS has the following log level priorities:\r\n\r\nhttps://github.com/nestjs/nest/blob/master/packages/common/services/utils/is-log-level-enabled.util.ts#L3\r\n```typescript\r\nconst LOG_LEVEL_VALUES: Record<LogLevel, number> = {\r\n  debug: 0,\r\n  verbose: 1,\r\n  log: 2,\r\n  warn: 3,\r\n  error: 4,\r\n};\r\n```\r\n\r\nand `verbose` log level is higher than `debug`, but in most systems and loggers `verbose` is usually lower than `debug`.\r\n\r\nWas it done on purpose?\r\n\r\nSee also nestjs-pino issue: https://github.com/iamolegga/nestjs-pino/issues/1268\n\n### Minimum reproduction code\n\nhttps://github.com/nestjs/nest/\n\n### Steps to reproduce\n\n_No response_\n\n### Expected behavior\n\n`verbose` log level is lower than `debug`\n\n### Package\n\n- [ ] I don't know. Or some 3rd-party package\n- [X] <code>@nestjs/common</code>\n- [ ] <code>@nestjs/core</code>\n- [ ] <code>@nestjs/microservices</code>\n- [ ] <code>@nestjs/platform-express</code>\n- [ ] <code>@nestjs/platform-fastify</code>\n- [ ] <code>@nestjs/platform-socket.io</code>\n- [ ] <code>@nestjs/platform-ws</code>\n- [ ] <code>@nestjs/testing</code>\n- [ ] <code>@nestjs/websockets</code>\n- [ ] Other (see below)\n\n### Other package\n\nnestjs-pino\n\n### NestJS version\n\n_No response_\n\n### Packages versions\n\n```json\r\n\r\n```\r\n\n\n### Node.js version\n\n_No response_\n\n### In which operating systems have you tested?\n\n- [ ] macOS\n- [ ] Windows\n- [X] Linux\n\n### Other\n\n_No response_",
+      "labels": [
+        "type: todo \ud83d\udc9a",
+        "scope: common",
+        "good first issue \ud83d\udc4d",
+        "effort1: hours",
+        "priority: medium (3)"
+      ],
+      "state": "closed",
+      "created_at": "2023-01-13T12:24:49Z",
+      "comments": 6
+    },
+    {
+      "number": 10581,
+      "title": "Provide a callback handle config for NatsServer. Currently if NatsServer disconnects a hybrid application has no way of getting notified.",
+      "body": "### Is there an existing issue that is already proposing this?\n\n- [X] I have searched the existing issues\n\n### Is your feature request related to a problem? Please describe it\n\nWhen NATS client (js) reaches to a ProtocolError it will close the connection without reconnecting: [ref](https://github.com/nats-io/nats.deno/blob/main/nats-base-client/protocol.ts#L462), but the NatsServer used underneath by nestJS framework only logs this event as an error and doesn't provide any handle, callback to recover or exit from it. NestJS [ref](https://github.com/nestjs/nest/blob/v9.2.0/packages/microservices/server/server-nats.ts#L141)\r\n\r\nThis is ok for single server microservices because either they are configured for reconnect or upon a disconnect event the process is killed. However, for a hybrid micorservice which has a NatsServer and an HTTP Server, the process continues serving http request whereas the NatsServer is down.\r\n\n\n### Describe the solution you'd like\n\nGetting a callback handle `errorCallback` from Nats config (NatsOptions) and call it upon detecting an error from nats.\r\n\r\n```\r\n  public async handleStatusUpdates(client: Client) {\r\n    for await (const status of client.status()) {\r\n      ....\r\n      if (status.type === 'disconnect' || status.type === 'error') {\r\n        this.logger.error(\r\n          `NatsError: type: \"${status.type}\", data: \"${data}\".`,\r\n        );\r\n        \r\n        if(status.type === 'error') {\r\n        this.errorCallback()\r\n        }\r\n        \r\n      } else {\r\n        ....\r\n    }\r\n  }`\n\n### Teachability, documentation, adoption, migration strategy\n\nIt is not a breaking change as the default `errorCallback` could be an empty function doing nothing.\r\n\r\n\n\n### What is the motivation / use case for changing the behavior?\n\nTo be able to react upon the nats server closes connection upon NatsProtocolError or other uncaptured nats errors for a hybrid application.",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: microservices",
+        "effort1: hours",
+        "priority: low (4)"
+      ],
+      "state": "closed",
+      "created_at": "2022-11-21T11:26:57Z",
+      "comments": 5
+    },
+    {
+      "number": 9893,
+      "title": "[9.x.x] Duplicate Provider names don't get shown in REPL-debug() function ",
+      "body": "### Is there an existing issue for this?\r\n\r\n- [X] I have searched the existing issues\r\n\r\n### Current behavior\r\n\r\nGiven the following Diagram:\r\n\r\n```mermaid\r\ngraph TD;\r\n  AppModule((AppModule))-->CatModule((CatModule))\r\n  AppModule-->AppService_A>AppService]\r\n  AppModule-->foo_A>provide: 'Foo', useValue: 'bar']\r\n\r\n  CatModule-->AppService_B>AppService]\r\n  CatModule-->foo_B>provide: 'Foo', useValue: 'barbaz']\r\n  CatModule-->CatService>CatService]\r\n```\r\n\r\nBoth the `AppModule` and `CatModule` have providers with the same name but **different implementations/instances**. \r\nWhen using the NestJS `repl()` method and print a `debug()` statement in order to list the application context, the `AppService` &  `Foo` provider does not get listed within the `CatModule`.\r\n\r\n```\r\n[Nest] 5340  - 07/08/2022, 11:18:42 AM     LOG [NestFactory] Starting Nest application...\r\n[Nest] 5340  - 07/08/2022, 11:18:42 AM     LOG [InstanceLoader] CatModule dependencies initialized\r\n[Nest] 5340  - 07/08/2022, 11:18:42 AM     LOG [InstanceLoader] AppModule dependencies initialized\r\n[Nest] 5340  - 07/08/2022, 11:18:42 AM     LOG REPL initialized\r\n> debug()\r\n\r\nAppModule:\r\n - controllers:\r\n  \u25fb AppController\r\n - providers:\r\n  \u25fb AppService\r\n  \u25fb Foo\r\nCatModule:\r\n - providers:\r\n  \u25fb CatService\r\n```\r\n\r\n\r\n### Minimum reproduction code\r\n\r\nhttps://github.com/BrunnerLivio/nestjs-repro-duplicate-provider-repl\r\n\r\n### Steps to reproduce\r\n\r\n1. npm ci\r\n2. npm run start:dev\r\n3. Write `debug()` within REPL console\r\n\r\n### Expected behavior\r\n\r\nShould list all providers \r\n\r\n```diff\r\n[Nest] 5340  - 07/08/2022, 11:18:42 AM     LOG [NestFactory] Starting Nest application...\r\n[Nest] 5340  - 07/08/2022, 11:18:42 AM     LOG [InstanceLoader] CatModule dependencies initialized\r\n[Nest] 5340  - 07/08/2022, 11:18:42 AM     LOG [InstanceLoader] AppModule dependencies initialized\r\n[Nest] 5340  - 07/08/2022, 11:18:42 AM     LOG REPL initialized\r\n$ debug()\r\n\r\nAppModule:\r\n - controllers:\r\n  \u25fb AppController\r\n - providers:\r\n  \u25fb AppService\r\n  \u25fb Foo\r\nCatModule:\r\n - providers:\r\n  \u25fb CatService\r\n+ \u25fb AppService\r\n+ \u25fb Foo\r\n```\r\n\r\n### Package\r\n\r\n- [ ] I don't know. Or some 3rd-party package\r\n- [ ] <code>@nestjs/common</code>\r\n- [X] <code>@nestjs/core</code>\r\n- [ ] <code>@nestjs/microservices</code>\r\n- [ ] <code>@nestjs/platform-express</code>\r\n- [ ] <code>@nestjs/platform-fastify</code>\r\n- [ ] <code>@nestjs/platform-socket.io</code>\r\n- [ ] <code>@nestjs/platform-ws</code>\r\n- [ ] <code>@nestjs/testing</code>\r\n- [ ] <code>@nestjs/websockets</code>\r\n- [ ] Other (see below)\r\n\r\n### Other package\r\n\r\n_No response_\r\n\r\n### NestJS version\r\n\r\n9.0.0\r\n\r\n### Packages versions\r\n\r\n```json\r\nplatform-express version : 9.0.0\r\nschematics version       : 9.0.1\r\ntesting version          : 9.0.0\r\ncommon version           : 9.0.0\r\ncore version             : 9.0.0\r\ncli version              : 9.0.0\r\n```\r\n\r\n\r\n### Node.js version\r\n\r\n16.15.0\r\n\r\n### In which operating systems have you tested?\r\n\r\n- [ ] macOS\r\n- [X] Windows\r\n- [ ] Linux\r\n\r\n### Other\r\n\r\n_No response_",
+      "labels": [
+        "type: bug :sob:",
+        "scope: core",
+        "effort1: hours",
+        "priority: medium (3)"
+      ],
+      "state": "closed",
+      "created_at": "2022-07-08T09:33:15Z",
+      "comments": 15
+    },
+    {
+      "number": 9622,
+      "title": "Lazy loaded module can't access global module's providers",
+      "body": "### Is there an existing issue for this?\n\n- [X] I have searched the existing issues\n\n### Current behavior\n\nIn the documentation it says:\r\n\r\n> Also, \"lazy-loaded\" modules share the same modules graph as those eagerly loaded on the application bootstrap as well as any other lazy modules registered later in your app.\r\n\r\nBut when trying to import a provider that is exported from a globally registered module (which eager modules are able to receive injected into their providers), lazy modules produce an error saying that the provider is not found.\n\n### Minimum reproduction code\n\nhttps://stackblitz.com/edit/nestjs-typescript-starter-muxzyg?file=src/app.module.ts\n\n### Steps to reproduce\n\n_No response_\n\n### Expected behavior\n\nI expected the service of the lazy module to be able to import a service from a global module.\n\n### Package\n\n- [ ] I don't know. Or some 3rd-party package\n- [X] <code>@nestjs/common</code>\n- [X] <code>@nestjs/core</code>\n- [ ] <code>@nestjs/microservices</code>\n- [ ] <code>@nestjs/platform-express</code>\n- [ ] <code>@nestjs/platform-fastify</code>\n- [ ] <code>@nestjs/platform-socket.io</code>\n- [ ] <code>@nestjs/platform-ws</code>\n- [ ] <code>@nestjs/testing</code>\n- [ ] <code>@nestjs/websockets</code>\n- [ ] Other (see below)\n\n### Other package\n\n_No response_\n\n### NestJS version\n\n_No response_\n\n### Packages versions\n\n```json\r\n{\r\n    \"@nestjs/common\": \"^8.1.1\",\r\n    \"@nestjs/core\": \"^8.1.1\",\r\n}\r\n```\r\n\n\n### Node.js version\n\n_No response_\n\n### In which operating systems have you tested?\n\n- [X] macOS\n- [ ] Windows\n- [X] Linux\n\n### Other\n\n_No response_",
+      "labels": [
+        "type: bug :sob:",
+        "scope: core",
+        "effort1: hours",
+        "priority: medium (3)"
+      ],
+      "state": "closed",
+      "created_at": "2022-05-19T19:44:47Z",
+      "comments": 5
+    },
+    {
+      "number": 7465,
+      "title": "Add Debug Level Logs during provider resolution",
+      "body": "## Feature Request\r\n\r\n## Is your feature request related to a problem? Please describe.\r\n\r\nOften times new users to the framework are confused about where the dependency resolution is coming from with the server startup and how dependencies end up getting injected into each dependency.\r\n\r\n## Describe the solution you'd like\r\n\r\nI'd like to see logs at a `debug` or `verbose` level that can be turned on and off (hence the level) to help describe why dependencies are being injected, where they are pulled from, and what is attempted to be looked at for the dependencies. Ideally something like\r\n\r\n```\r\nResolving dependencies for FooService\r\nResolving BarService\r\nSearching in FooModule for BarService\r\nSearching in BarModule's exports for BarService\r\nBarService found in BarModule's exports.\r\nBarService Resovled\r\nResolving BazService\r\n...\r\n```\r\n\r\nThis may be a bit more verbose than absolutely necessary, and might be a good split between just debug and verbose levels. \r\n\r\n## Teachability, Documentation, Adoption, Migration Strategy\r\n\r\nIt should be pretty easy to make a mention about this in the docs. And it would be pretty opt-in so it shouldn't harm anyone\r\n\r\n## What is the motivation / use case for changing the behavior?\r\n\r\nI feel like this will help newcomers and veterans of the framework see how Nest resolves dependencies better and give developers more confidence about what is happening under the covers.\r\n\r\nI'm more than happy to work on this, already started with a bit of code actually, but will need some pointers about determining what module the current dependency belongs to. I think I can follow most the rest of the code though.",
+      "labels": [
+        "type: enhancement :wolf:",
+        "type: feature :tada:",
+        "scope: core",
+        "effort1: hours",
+        "priority: low (4)"
+      ],
+      "state": "closed",
+      "created_at": "2021-07-08T02:48:27Z",
+      "comments": 5
+    },
+    {
+      "number": 7288,
+      "title": "Add option to pass raw packet to custom microservice de/serializers",
+      "body": "## Feature Request\r\nWe would like the ability to pass the raw packet from an external service to a custom deserializer, which can process the packet and return the proper format for pattern matching.\r\n\r\n## Is your feature request related to a problem? Please describe.\r\nWhen we integrated Nest microservices with our external services, we realized that there is currently no way to route events to the proper controller when using formats that don't conform to Nest's requirements. Specifically, when using RabbitMQ and Kafka, we use custom headers to delineate event types. Because of the domain of our work, we cannot change the format of our events, meaning we cannot include the \"pattern\" key required by Nest. If we could pass the packet to a custom deserializer, we could perform all necessary processing to return an object with the correct format, including the \"pattern\" key.\r\n\r\n## Describe the solution you'd like\r\nWe would like to add a configuration option alongside custom serializers and deserializers which, when enabled, would pass raw packets to the de/serializer instead of the content alone.\r\n<!-- A clear and concise description of what you want to happen. Add any considered drawbacks. -->\r\n\r\n## Teachability, Documentation, Adoption, Migration Strategy\r\nThis can be used by providing a custom de/serializer and setting a \"useRawPacket\" configuration option.\r\n<!-- If you can, explain how users will be able to use this and possibly write out a version the docs. Maybe a screenshot or design? -->\r\n\r\n## What is the motivation / use case for changing the behavior?\r\nIn order to be \"platform-agnostic\", Nest needs to support formats that may not fit its own. Allowing custom serializers and deserializers to process packets into a supported format will allow microservices to support any external service, regardless of message format.",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: microservices",
+        "effort1: hours",
+        "priority: low (4)"
+      ],
+      "state": "closed",
+      "created_at": "2021-06-22T14:40:46Z",
+      "comments": 8
+    },
+    {
+      "number": 7165,
+      "title": "feat: Add logging for WebSockets when we mount gateways",
+      "body": "## Feature Request\r\nAdd logging for WebSockets when we mount gateways\r\n\r\n## Is your feature request related to a problem? Please describe.\r\nThe problem is that there is no logging when you are working with gateways, for example when Nest.js mounts HTTP endpoints you can see in the logs that such endpoints were mounted and etc. So when you are working with Gateways you are completely blind, whether it works or not. \r\n\r\n## Describe the solution you'd like\r\nAdd logging for Gateways, which gateway class mounted as a gateway, which method mounted to which WebSocket message. \r\nAlso, we may add logging to the socket creation and etc. \r\n\r\n## Teachability, Documentation, Adoption, Migration Strategy\r\nTotally backward compatible change.\r\n\r\n## What is the motivation / use case for changing the behavior?\r\nAdd more visibility when working with the WebSocket. \r\n\r\nFWIW, I have a desire to submit PR myself. \ud83d\ude42 ",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: websockets",
+        "effort1: hours"
+      ],
+      "state": "closed",
+      "created_at": "2021-05-20T09:00:32Z",
+      "comments": 4
+    },
+    {
+      "number": 6419,
+      "title": "Feature: Support multi store in cache module.",
+      "body": "## Feature Request\r\n\r\n## Is your feature request related to a problem? Please describe.\r\nCache-manager which used by a nest cache module supports multi store configuration.\r\nThat can increase performance in some cases since cached data could be read from memory without having to access cache services like redis or memcached. Also that could make app more fault tolerance in case cache service went down or need to be restarted/updated.\r\n\r\nE.g. \r\n\r\n```js\r\nvar multiCache = cacheManager.multiCaching([memoryCache, someOtherCache]);\r\n\r\n// Sets in all caches.\r\n// The \"ttl\" option can also be a function (see example below)\r\nmultiCache.set('foo2', 'bar2', {ttl: ttl}, function(err) {\r\n    if (err) { throw err; }\r\n\r\n    // Fetches from highest priority cache that has the key.\r\n    multiCache.get('foo2', function(err, result) {\r\n        console.log(result);\r\n        // >> 'bar2'\r\n\r\n        // Delete from all caches\r\n        multiCache.del('foo2');\r\n    });\r\n});\r\n```\r\n\r\n## Describe the solution you'd like\r\n\r\nAt the moment cache module users `cacheManager.caching` to create an instance of cache manager.\r\nNew feature should make possible to pass an array of cache stores into a cache module to create a multi store cache manager with `cacheManager.multiCaching`.\r\n\r\n## What is the motivation / use case for changing the behavior?\r\n\r\nThat could increase caching performance and also add some fault tolerance.\r\n",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: common",
+        "effort1: hours",
+        "state: community",
+        "priority: very low (5)"
+      ],
+      "state": "closed",
+      "created_at": "2021-02-15T17:53:19Z",
+      "comments": 11
+    },
+    {
+      "number": 6169,
+      "title": "[MVC] Render multiple views for single handler in controller without using @Res",
+      "body": "## Feature Request\r\n\r\n## Is your feature request related to a problem? Please describe.\r\nAs per [documentation](https://docs.nestjs.com/techniques/mvc#dynamic-template-rendering) if user needs to render view dynamically he have to do it manually by using platform-specific response object provided by `@Res` decorator. This is not quite handy because in this case all the wrapping (exception filters, interceptors, etc) infrastructure around nest is disabled and this functionality missed\r\n\r\n## Describe the solution you'd like\r\nAllow user to specify what view to render in the data returned from the controller. The behaviour similar to redirect, when user is able return redirect url in special `url` [field](https://github.com/nestjs/nest/blob/be0cdfe7e67c006e48e93f107ed3a6e325d55b51/packages/core/router/router-response-controller.ts#L41). Something like this:\r\n\r\n```js\r\nimport { Get, Controller, Render } from '@nestjs/common';\r\n\r\n@Controller()\r\nexport class AppController {\r\n  @Get()\r\n  @Render('index')\r\n  async root() {\r\n\r\n  try {\r\n    const indexData = await this._getIndexData();\r\n\r\n    return indexData;\r\n  catch (e) {\r\n    return { view: 'error-view' };\r\n  }\r\n}\r\n```\r\n\r\nSince returning arbitrary views from handler might conflict with declaring view via `@Render` decorator, it may make sense to allow to declare multiple views in decorator and throw some kind of exception if user decided to return something which is not declared. For example:\r\n\r\n```js\r\nimport { Get, Controller, Render } from '@nestjs/common';\r\n\r\n@Controller()\r\nexport class AppController {\r\n  @Get()\r\n  @Render(['index', 'unauthorized-error'])\r\n  async root() {\r\n\r\n  try {\r\n    const user = await this._userService.getUser();\r\n    \r\n    if (!user) {\r\n      return { view: 'unauthorized-error' }; // will render unauthorized user page\r\n    }\r\n    \r\n    return { user }; // will render index page\r\n  catch (e) {\r\n    return { view: 'error-view' }; // Nest will throw error on attempt to render unspecified view\r\n  }\r\n}\r\n```\r\n\r\nIn this case user will be required to always return a view. However the old behaviour will not change: if view set as `@Render('view')`, Nest will continue to pick info from metadata associated via method. \r\n\r\n## What is the motivation / use case for changing the behavior?\r\nPossible use-cases are:\r\n\r\n- rendering specific error pages for business-logic errors\r\n- A/B Experiments\r\n- business process requires different pages to be rendered on a same URL and we do not want to go SPA way",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: core",
+        "effort1: hours",
+        "state: community"
+      ],
+      "state": "closed",
+      "created_at": "2021-01-15T14:45:24Z",
+      "comments": 15
+    },
+    {
+      "number": 4752,
+      "title": "Provide Validation for FileInterceptor/UploadedFile to Ensure a File is Actually Uploaded",
+      "body": "## Feature Request\r\nProvide a built in way to ensure that when using `@FileInterceptor` that it is easy to validate the scenario where no file was actually sent to the backend\r\n\r\n## Is your feature request related to a problem? Please describe.\r\nThe current `@UploadedFile` implementation doesn't allow it to participate in Pipes validation. Even if it did, many users would have to implement a custom Pipe to ensure that the file was set in UserLand code. This seems like a common enough scenario that it would make sense for NestJS to support an out of the box solution\r\n\r\n## Describe the solution you'd like\r\nOne of: \r\n- Extend the existing `@FileInterceptor` so that it takes (optional) additional configuration that indicates an error should be thrown if no file/files are found at the specified fields.\r\n- Update the `@UploadedFile` decorator so that it can participate in Pipes validation and then provide a built in Pipe eg `ParseFile`\r\n\r\n## What is the motivation / use case for changing the behavior?\r\nSeamless out of the box experience for dealing with file uploading. Less duplication in user land code to cover common community scenarios\r\n\r\n## Notes\r\nI'd be happy to open up a PR for this if there is some guidance regarding which approach would be preferred",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: common",
+        "good first issue \ud83d\udc4d",
+        "effort1: hours"
+      ],
+      "state": "closed",
+      "created_at": "2020-05-07T12:52:14Z",
+      "comments": 17
+    },
+    {
+      "number": 4686,
+      "title": "Graphql Apollo Federation Sample",
+      "body": "## Feature Request\r\n\r\n## Is your feature request related to a problem? Please describe.\r\nNo\r\n\r\n## Describe the solution you'd like\r\nCan a sample of how using apollo federation with nestjs be uploaded? Most of the docs sections have a sample attached, but this one has just a tutorial that is not working for my case.\r\n\r\n## Teachability, Documentation, Adoption, Migration Strategy\r\nUsers will have an example to start their own projects.\r\n\r\n## What is the motivation / use case for changing the behavior?\r\nI'm trying to use but with no success.",
+      "labels": [
+        "good first issue \ud83d\udc4d",
+        "scope: sample",
+        "effort1: hours"
+      ],
+      "state": "closed",
+      "created_at": "2020-04-27T00:35:26Z",
+      "comments": 6
+    },
+    {
+      "number": 4568,
+      "title": "[Microservices] Grpc allways capitalize first letter",
+      "body": "## Bug Report\r\n\r\n## Current behavior\r\n<!-- Describe how the issue manifests. -->\r\nEverytime when you're using `@Grpc(...)` decorator it use a `createGrpcMethodMetadata` where it checks if you provide a service name and method name, if you don't provide one of them, it will uppercase first latter of method name.\r\n\r\n\r\n## Input Code\r\n<!-- REPL or Repo link if applicable: -->\r\n\r\nSo if you have a code like that:\r\n\r\n```ts\r\n\t@GrpcMethod('MonsterService')\r\n\tpublic findOne(data: FindOneQuery, metadata: any): Monster {\r\n\t\tconst items = [\r\n\t\t\t{ id: 1, name: 'John' },\r\n\t\t\t{ id: 2, name: 'Doe' }\r\n\t\t];\r\n\t\treturn items.find(({ id }) => id === data.id);\r\n\t}\r\n```\r\n\r\nbut your `.proto` file looks like that:\r\n\r\n```proto\r\nservice MonsterService {\r\n    rpc findOne (MonsterById) returns (Monster) {}\r\n}\r\n```\r\n\r\nit won't work with console message as\r\n\r\n```text\r\nMethod handler findOne for /monster.MonsterService/findOne expected but not provided\r\n```\r\n\r\n## Expected behavior\r\n<!-- A clear and concise description of what you expected to happen (or code). -->\r\nGrpc decorator should respect `GrpcOptions.options.loader` configuration, especially `keepCase`\r\n\r\nWhy does it even matter? Because changing name under the hood is a bit misleading, when do you have  a team of different languages, like java, c# and ts everyone looks at the proto and implement their logic, so when we are mapping methods 1-1 it should be consistent due to configuration, not by hardcoded logic.\r\n\r\n\r\n## Possible Solution\r\n<!--- Only if you have suggestions on a fix for the bug -->\r\n\r\nSomehow there should be injected this `GrpcOptions` object and make a changes base on them.\r\n\r\n## Environment\r\n\r\n<pre><code>\r\nNest version: 7.0.7\r\n<!-- Check whether this is still an issue in the most recent Nest version -->\r\n \r\nFor Tooling issues:\r\n- Node version: v10.15.1  <!-- run `node --version` -->\r\n- Platform: Linux  <!-- Mac, Linux, Windows -->\r\n\r\nOthers: I love nest <3\r\n<!-- Anything else relevant?  Operating system version, IDE, package manager, ... -->\r\n</code></pre>\r\n\r\n",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: microservices",
+        "effort1: hours"
+      ],
+      "state": "closed",
+      "created_at": "2020-04-12T07:24:37Z",
+      "comments": 5
+    },
+    {
+      "number": 2581,
+      "title": "Remove optional dependency metadata inherited from base class",
+      "body": "<!--\r\nPLEASE HELP US PROCESS GITHUB ISSUES FASTER BY PROVIDING THE FOLLOWING INFORMATION.\r\n\r\nISSUES MISSING IMPORTANT INFORMATION MAY BE CLOSED WITHOUT INVESTIGATION.\r\n-->\r\n\r\n## I'm submitting a...\r\n<!-- \r\nPlease search GitHub for a similar issue or PR before submitting.\r\nCheck one of the following options with \"x\" -->\r\n<pre><code>\r\n[ ] Regression <!--(a behavior that used to work and stopped working in a new release)-->\r\n[x] Bug report\r\n[ ] Feature request\r\n[ ] Documentation issue or request\r\n[ ] Support request => Please do not submit support request here, instead post your question on Stack Overflow.\r\n</code></pre>\r\n\r\n## Current behavior\r\ni extend AuthGuard with a custom Implementation that depends on a provider of an other module (e.g. config).\r\nif i try to use that custom AuthGuard in an other module, i have to specify a dependency to the config module, although this is already done in the module of the custom guard. \r\n\r\nAfter a long debug session i found out, that AuthGuard use an Optional Parameter. https://github.com/nestjs/passport/blob/8acdc04e6210aefab7a6e2ac4009e788bc8de5b8/lib/auth.guard.ts#L29\r\nWhich means the injector does nothing, because it can not resolve the dependency (config) and the parameter of the base-class (AuthGuard) has an Optional Parameter https://github.com/nestjs/nest/blob/a3304441f81a8614edfeaa3508e8e8d5c12020bc/packages/core/injector/injector.ts#L269\r\n\r\n\r\n## Expected behavior\r\nPrint out a clear Error message\r\n\r\n\r\n## Minimal reproduction of the problem with instructions\r\n<pre><code>import {\r\n  ExecutionContext,\r\n  Injectable,\r\n  Logger,\r\n  UnauthorizedException,\r\n} from '@nestjs/common';\r\nimport { AuthGuard } from '@nestjs/passport';\r\nimport { Configuration } from '../configuration/configuration';\r\n\r\n@Injectable()\r\nexport class JwtAuthGuard extends AuthGuard('jwt') {\r\n  constructor(private readonly config: Configuration) {\r\n    super();\r\n  }\r\n\r\n  canActivate(context: ExecutionContext) {\r\n    // Add your custom authentication logic here\r\n    // for example, call super.logIn(request) to establish a session.\r\n    // return true;\r\n    // super.logIn(context.switchToHttp().getRequest());\r\n\r\n    return super.canActivate(context);\r\n  }\r\n\r\n  handleRequest(err, user, _info) {\r\n    if (err || !user) {\r\n      if (this.config.withoutLogin()) {\r\n        Logger.log('WITHOUT_LOGIN ==> NO LOGIN REQUIRED !!!');\r\n        user = 'autologin';\r\n        return user;\r\n      }\r\n\r\n      throw err || new UnauthorizedException();\r\n    }\r\n    return user;\r\n  }\r\n}\r\n</code></pre>\r\n\r\n## What is the motivation / use case for changing the behavior?\r\nIn General i find that nestjs should be more verbose on handling dependencies. i spend a lot time debugging in the past\r\n\r\n\r\n## Environment\r\n\r\n<pre><code>\r\nNest version: 6.2.4\r\n<!-- Check whether this is still an issue in the most recent Nest version -->\r\n \r\nFor Tooling issues:\r\n- Node version: v11.10.0 \r\n- Platform: Mac\r\n\r\nOthers:\r\n<!-- Anything else relevant?  Operating system version, IDE, package manager, ... -->\r\n</code></pre>\r\n",
+      "labels": [
+        "scope: core",
+        "effort1: hours",
+        "priority: low (4)"
+      ],
+      "state": "open",
+      "created_at": "2019-06-17T19:21:56Z",
+      "comments": 6
+    }
+  ],
+  "intermediate": [
+    {
+      "number": 10629,
+      "title": "Out-of-the-box support for `Explorer` pattern",
+      "body": "### Is there an existing issue that is already proposing this?\r\n\r\n- [X] I have searched the existing issues\r\n\r\n### Is your feature request related to a problem? Please describe it\r\n\r\nI seem to be repeating myself regularly when doing an `Explorer` pattern. Here are some of the scenarios:\r\n\r\n- `WorkerExplorer` to register my own queue/worker pattern (does not use `@nestjs/bull`\r\n- `WebhookHandlerExplorer` to automatically resolve webhooks to a certain provider\r\n\r\nEspecially the Webhook logic has been rewritten often.\r\n\r\n### Describe the solution you'd like\r\n\r\nI would like it if NestJS could abstract this `Explorer` pattern to a common abstract class.\r\n\r\nSomething like:\r\n\r\n```ts\r\nconst MY_WEBHOOKS_KEY = 'MY_WEBHOOKS_KEY'\r\n\r\n// `@Explorer` provided by NestJS\r\n@Explorer(MY_WEBHOOKS_KEY)\r\nexport class WebhookHandlerExplorer implements NestExplorer {}\r\n\r\n// `createExplorerDecorator` provided by NestJS\r\nconst WebhookHandler = createExplorerDecorator(MY_WEBHOOKS_KEY);\r\n\r\n@WebhookHandler('customer_create')\r\nexport class MyHandler {}\r\n\r\n@Module({\r\n  providers: [MyHandler],\r\n})\r\nexport class MyHandlersWebhook {}\r\n```\r\n\r\nWhere Nest would register these `@Explorer` providers automatically, and use them during module initialisation to look for other providers that have been marked with `MY_WEBHOOKS_KEY` metadata.\r\n\r\n### Teachability, documentation, adoption, migration strategy\r\n\r\nSee above. This is an extremely rough idea. I thought I'd propose it to see if anyone has thought of something similar, and maybe even has a better API design in mind.\r\n\r\n### What is the motivation / use case for changing the behavior?\r\n\r\nHigh repetition. Even within `@nestjs` packages themselves, like `@nestjs/graphql` and `@nestjs/bull`.",
+      "labels": [
+        "type: enhancement :wolf:",
+        "effort2: days",
+        "priority: medium (3)"
+      ],
+      "state": "closed",
+      "created_at": "2022-12-03T14:35:00Z",
+      "comments": 5
+    },
+    {
+      "number": 7219,
+      "title": "gRPC server and client \"package\" option is mandatory",
+      "body": "## Bug Report\r\n\r\n## Current behavior\r\n\r\nWhen instanciation a gRPC server or client, the `package` option is mandatory:\r\n\r\n```ts\r\nreturn NestFactory.createMicroservice<GrpcOptions>(ApplicationModule, {\r\n    transport: Transport.GRPC,\r\n    options: {\r\n      package: '',\r\n      protoPath: 'src/domain/index.proto',\r\n      url: 'localhost:3000'\r\n    }\r\n  }).then((application) => {\r\n    return application.listenAsync();\r\n  });\r\n```\r\n\r\nBut Protocol Buffers specification clearly establish that `package` is optional in `.proto` definitions.\r\n\r\nhttps://developers.google.com/protocol-buffers/docs/overview#packages\r\n\r\n> You can add an **optional** package specifier to a .proto file to prevent name clashes between protocol message types.\r\n\r\nCurrent NestJS@7 behavior prevents using `.proto` files that doesn't come with a `package`.\r\n\r\nIt seems to be working with the server by passing an empty array as `package`, but doing the same with the client throws an error:\r\n\r\n> Error: The invalid gRPC service (service not found)\r\n\r\nIt looks like the gRPC client, at least, doesn't support `.proto` definitions without `package`. And I suspect that the server doesn't support it either but I can't test it without a functioning client.\r\n\r\n",
+      "labels": [
+        "scope: microservices",
+        "effort2: days",
+        "priority: low (4)"
+      ],
+      "state": "closed",
+      "created_at": "2021-06-01T08:30:54Z",
+      "comments": 7
+    },
+    {
+      "number": 4873,
+      "title": "Global module provider injection issue",
+      "body": "## Bug Report\r\n\r\n## Current behavior\r\nThe issue arises in the following setup:\r\n`AppModule` imports `ModuleA`(global) and `ModuleB`(non-global) and `ConfigModule.forRoot`,\r\n`ModuleA` declares some `REQUEST`-scoped provider `X` with request context being injected,\r\n`ModuleB` imports `ConfigModule.forFeature`, and declares some provider `Y`, without specifying a scope, with `X` and config being injected.\r\n\r\nIn such setup constructor for `X` injected into `Y` is not called (in case `X` is declared using class).\r\nIf `X` is declared via `useFactory`, `null` is injected into `Y`.\r\n\r\n## Input Code\r\nhttps://github.com/zyulyaev/nest-global-module-issue\r\n\r\n## Expected behavior\r\n`X`'s constructor is called and its dependencies are injected.\r\n\r\n## Environment\r\n\r\n<pre><code>\r\nNest version: 7.1.2\r\n \r\nFor Tooling issues:\r\n- Node version: v12.15.0\r\n- Platform: macos\r\n\r\nOthers:\r\npackage manager: pnpm\r\n</code></pre>\r\n\r\n",
+      "labels": [
+        "scope: core",
+        "type: potential issue \ud83d\udc94",
+        "effort2: days",
+        "priority: medium (3)"
+      ],
+      "state": "open",
+      "created_at": "2020-06-02T22:04:53Z",
+      "comments": 7
+    },
+    {
+      "number": 4073,
+      "title": "OverrideMiddleware is missing",
+      "body": "## Feature Request\r\n\r\n## Is your feature request related to a problem? Please describe.\r\nWhile trying to write tests for NestJS, I'm trying to override nestjs-middleware, by defining it with `overrideProvider(MyMiddleware).useValue({ use(req, res, next) { next() })`.\r\nThis doesn't work however, since he just keeps dropping in the 'real' middleware (MyMiddleware) instead of the overridden one. \r\n\r\n## Describe the solution you'd like\r\nJust like `overrideProvider` or `overrideInterceptor`, it would be useful to have a similar `overrideMiddleware` function for testing purposes.\r\n\r\n## What is the motivation / use case for changing the behavior?\r\nBetter/easier testability of NestJs applications!",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: testing",
+        "effort2: days"
+      ],
+      "state": "closed",
+      "created_at": "2020-02-17T09:02:37Z",
+      "comments": 10
+    },
+    {
+      "number": 3074,
+      "title": "It is not possible to have multiple handlers  `@EventPattern()` for the same event",
+      "body": "## Bug Report\r\nIt is not possible to have multiple handlers  `@EventPattern()` for the same event\r\n\r\n## Current behavior\r\nCreating multiple handlers for the same event does not call all of them\r\n\r\n## Input Code\r\n<!-- REPL or Repo link if applicable: -->\r\n\r\n```ts\r\n\r\n  @EventPattern('notify')\r\n  eventHandler(data: any) {\r\n    KafkaController.IS_NOTIFIED = data.value.notify;\r\n  }\r\n\r\n  @EventPattern('notify')\r\n  secondEventHandler(data: any) {\r\n    KafkaController.IS_NOTIFIED_TWICE = data.value.notify;\r\n  }\r\n\r\n```\r\n\r\n## Expected behavior\r\nBoth event handlers should be called.\r\nThis is needed because an application can have different features/area that has to do some work after an event happen. Eg.  We deleting a customer in a shopping class we could have an `OrderController` that will react to `\"delete-customer\"` event and archive orders. Also, we could have a `UsersController` that will delete user data.\r\n\r\n## Possible Solution\r\nThere is a part of the code in NestJS that finds the handler and returns a single element. That can be changed to return all the handlers matching the event.\r\n\r\n## Environment\r\nNest version: 6.7\r\n\r\n\r\n",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: microservices",
+        "effort2: days",
+        "priority: low (4)"
+      ],
+      "state": "closed",
+      "created_at": "2019-09-30T18:29:22Z",
+      "comments": 17
+    },
+    {
+      "number": 3073,
+      "title": "Pass options alongside the message/event (client proxy)",
+      "body": "## Feature Request\r\n\r\n## Is your feature request related to a problem? Please describe.\r\n<!-- A clear and concise description of what the problem is. Ex. I have an issue when [...] -->\r\nI want to set expiration in options, but it's not supported right now.\r\n\r\n## Describe the solution you'd like\r\n<!-- A clear and concise description of what you want to happen. Add any considered drawbacks. -->\r\n```\r\nexport interface ReadPacket<T = any> {\r\n  pattern: any;\r\n  data: T;\r\n  options:any\r\n}\r\n\r\n protected dispatchEvent(packet: ReadPacket): Promise<any> {\r\n    return new Promise((resolve, reject) =>\r\n      this.channel.sendToQueue(\r\n        this.queue,\r\n        Buffer.from(JSON.stringify(packet)),\r\n        packet.options,\r\n        err => (err ? reject(err) : resolve()),\r\n      ),\r\n    );\r\n  }\r\n\r\n  public emit<TResult = any, TInput = any>(\r\n    pattern: any,\r\n    data: TInput,\r\n    options:any\r\n  ): Observable<TResult> {\r\n    if (isNil(pattern) || isNil(data)) {\r\n      return _throw(new InvalidMessageException());\r\n    }\r\n    return defer(async () => this.connect()).pipe(\r\n      mergeMap(() => this.dispatchEvent({ pattern, data, options })),\r\n    );\r\n  }\r\n```\r\n\r\n## Teachability, Documentation, Adoption, Migration Strategy\r\n<!-- If you can, explain how users will be able to use this and possibly write out a version the docs. Maybe a screenshot or design? -->\r\n\r\n## What is the motivation / use case for changing the behavior?\r\n<!-- Describe the motivation or the concrete use case. -->",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: microservices",
+        "effort2: days",
+        "priority: low (4)"
+      ],
+      "state": "closed",
+      "created_at": "2019-09-30T14:41:33Z",
+      "comments": 11
+    },
+    {
+      "number": 770,
+      "title": "Support multi option for providers",
+      "body": "## I'm submitting a...\r\n<!-- \r\nPlease search GitHub for a similar issue or PR before submitting.\r\nCheck one of the following options with \"x\" -->\r\n<pre><code>\r\n[ ] Regression <!--(a behavior that used to work and stopped working in a new release)-->\r\n[ ] Bug report\r\n[ X] Feature request\r\n[ ] Documentation issue or request\r\n[ ] Support request => Please do not submit support request here, instead post your question on Stack Overflow.\r\n</code></pre>\r\n\r\n## Current behavior\r\nUnable to pass multiple objects on one token.\r\n\r\n\r\n## Expected behavior\r\nProviders should support he `multi` boolean that allows you to inject multiple providers.\r\n\r\n## What is the motivation / use case for changing the behavior?\r\nBehavior similar to [Angular](https://angular.io/api/core/ClassProvider#multi)\r\n",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: core",
+        "effort2: days",
+        "state: core-team"
+      ],
+      "state": "closed",
+      "created_at": "2018-06-07T20:21:15Z",
+      "comments": 7
+    }
+  ],
+  "hard": [
+    {
+      "number": 6265,
+      "title": "Improve support for serverless (lazy loading)",
+      "body": "## Feature Request\r\n\r\n## Is your feature request related to a problem? Please describe.\r\nI'm currently using Nestjs with firebase functions. As I need to load several modules due to coldstart, the startup time is very high, some cases almost 3 seconds\r\n\r\n## Describe the solution you'd like\r\nit would be interesting to have some way to load the modules as they are being requested. For example, I have the \"orders\" module that uses the \"products\" module and I also have the \"users\" module.\r\nWhen I make a request to get user information, the \"products\" and \"orders\" modules are loaded, but will not be used (now).\r\nIn this case, these modules consume a lot of time in the coldstart even if they have not been used yet. This module may be used later or not, as this is the context of serverless functions\r\n\r\n\r\n## Teachability, Documentation, Adoption, Migration Strategy\r\n\r\nI thought of something like that:\r\nThe default behavior is what happens today, this \"asLazy\" option would be to enable lazy loading\r\n```ts\r\n\r\n@Module({\r\n\tcontrollers: [UsersController],\r\n\tproviders: [UsersService],\r\n\texports: [UsersService],\r\n})\r\nexport class UsersModule {}\r\n\r\n@Module({\r\n\timports: [],\r\n\tcontrollers: [ProductsController],\r\n\tproviders: [ProductsService],\r\n\texports: [ProductsService],\r\n})\r\nexport class ProductsModule {}\r\n\r\n@Module({\r\n\timports: [\r\n\t\tExample01Module, // these module will be loaded after the \"OrdersModule\" is loaded\r\n\t\tProductsModule.asLazy(), // these modules will only be loaded after being requested inside \"OrdersModule\"\r\n\t\tUsersModule.asLazy(),\r\n\t],\r\n\tcontrollers: [OrdersController],\r\n\tproviders: [OrdersService],\r\n\texports: [OrdersService],\r\n})\r\nexport class OrdersModule {}\r\n@Module({\r\n\timports: [\r\n\t\tExample01Module, // this module loads when the application starts (default behavior)\r\n\t\tExample02Module, // this module loads when the application starts (default behavior)\r\n\t\tExample03Module, // this module loads when the application starts (default behavior)\r\n\t\tProductsModule.asLazy(), // these modules will only be loaded after being requested\r\n\t\tOrdersModule.asLazy(), // these modules will only be loaded after being requested\r\n\t\tUsersModule.asLazy(), // these modules will only be loaded after being requested\r\n\t],\r\n\tcontrollers: [OrdersController],\r\n\tproviders: [OrdersService],\r\n\texports: [OrdersService],\r\n})\r\nexport class AppModule {}\r\n\r\n\r\n```\r\n## What is the motivation / use case for changing the behavior?\r\nServerless. Nest initialization is very slow when trying to apply to the serverless context.\r\nA very lean application loads with 2 or 3 seconds (in firebase functions). If you add that to the computation time, the response would be very high. This reduction in coldstart time would reduce costs ($$) and create a better user experience.\r\n\r\nThere was an issue in 2019 with the same request, but it didn't go ahead. I believe there was a lack of context when creating it. (https://github.com/nestjs/nest/issues/2587)",
+      "labels": [
+        "type: feature :tada:",
+        "scope: core",
+        "effort3: weeks",
+        "priority: medium (3)"
+      ],
+      "state": "closed",
+      "created_at": "2021-01-28T17:25:58Z",
+      "comments": 6
+    },
+    {
+      "number": 4905,
+      "title": "TestingModuleBuilder is missing overrideModule",
+      "body": "## Feature Request\r\n\r\n## Is your feature request related to a problem? Please describe.\r\nI want to use mock modules to override functionalities of the module instead of overriding internals of the module again and again.\r\n\r\n## Describe the solution you'd like\r\nA `overrideModule` method similar to `overrideProvider` would solve the issue, example:\r\n```ts\r\nTest.createTestingModule({\r\n  ...\r\n})\r\n  .overrideModule(LoggerModule)\r\n  .useClass(LoggerTestingModule)\r\n  .compile();\r\n```\r\n\r\n## What is the motivation / use case for changing the behavior?\r\nFor the cases of e2e / integration testing in a project with many encapsulated libraries / modules it would be very helpful to be able to override entire modules instead of overriding internals of the modules every time the module is part of a testing module.",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: testing",
+        "effort3: weeks",
+        "priority: low (4)"
+      ],
+      "state": "closed",
+      "created_at": "2020-06-14T15:13:21Z",
+      "comments": 16
+    },
+    {
+      "number": 4287,
+      "title": "ConnectedSocket DI scope for services running under WebSocketGateway",
+      "body": "## Feature Request\r\nAdd a ConnectedSocket scope for injectables.\r\n\r\n## Is your feature request related to a problem? Please describe.\r\n<!-- A clear and concise description of what the problem is. Ex. I have an issue when [...] -->\r\nThere are currently 3 types of scopes:\r\n- default: useful for global request unaware services, that work in stateless manner;\r\n- request: super useful for handling request without having to pass context manually on each method call;\r\n- transient: useful for... well, using the same injection mechanics for in-place class instantiation;\r\n\r\nThat works well for normal http requests, but for websockets, request scope is not a thing according to docs:\r\n![image](https://user-images.githubusercontent.com/18382880/76513307-2b5ac700-6467-11ea-99e6-68f3f2eeee59.png)\r\n\r\nWebSocket service design is built upon the idea that you have a \"connection\" which is a lot similar to a session or request, all the data transferred between connect and disconnect is usually treated as a single scope.\r\n\r\nOut of all available mechanics to persist that data, we have @ConnectedSocket, which is only accessible from WebSocketGateway, so without a built in support for ConnectedSocket scope, we are forced to implement our own storages within socket and pass socket around in all the calls made between WebSocketGateway and services, which is exactly why Scopes.REQUEST was initially introduced in http.\r\n\r\n## Describe the solution you'd like\r\n<!-- A clear and concise description of what you want to happen. Add any considered drawbacks. -->\r\nAdd a new ConnectedSocket scope applicable to services that would create a new instance of a provider for each connection, within such services there is a need to access current socket client same way `@Request` decorator does for request-scope.\r\n\r\nAs far as I understand the problem lies within the fact that we must not generate new `WebSocketGateway` for connections, thus the propagation mechanics of Scopes break apart. But isn't `@ConnectedSocket` already enforcing similar breaches? As in, it is available within `WebWocketGateway`, but it is running within it's own virtual \"scope\".\r\n\r\n## Teachability, Documentation, Adoption, Migration Strategy\r\n<!-- If you can, explain how users will be able to use this and possibly write out a version the docs. Maybe a screenshot or design? -->\r\n\r\n## What is the motivation / use case for changing the behaviour?\r\n<!-- Describe the motivation or the concrete use case. -->\r\nEnforce similar system design on WebSockets as the already existing request within http eco-system to solve all the same troubles but within WebSocket context.\r\n\r\nIn addition, this would allow creating proper facades for Socket client to not call emit directly with no event/data type-checking.",
+      "labels": [
+        "type: enhancement :wolf:",
+        "scope: core",
+        "scope: websockets",
+        "effort3: weeks"
+      ],
+      "state": "open",
+      "created_at": "2020-03-12T11:00:19Z",
+      "comments": 7
+    },
+    {
+      "number": 2343,
+      "title": "Make Microservice creation dependent on the ApplicationContext",
+      "body": "## Feature Request\r\n\r\n## Is your feature request related to a problem? Please describe.\r\nI believe that the way Nestjs is bootstraped could be improved by allowing the definition of the container before the definition of the application.\r\n\r\nTake as an example a `ConfigService` that would read all the variables in `.env` in order to use them as options to define a new Nestjs Microservice while having the following code, how would you do it?\r\n```\r\nasync function bootstrap() {\r\n    const app = await NestFactory.createMicroservice(AppModule, {\r\n        transport: Transport.RMQ,\r\n        options: {\r\n            urls: [\r\n                'amqp://guest:guest@localhost:5672',\r\n            ],\r\n            queue: 'test',\r\n            queueOptions: { durable: true },\r\n        },\r\n    });\r\n    ...\r\n}\r\n```\r\nAt the moment only 2 solutions come in mind:\r\n- define an `ApplicationContext` to be able to get the `ConfigService` from the container to use it for instantiating the microservice.\r\n- define a service that should be instantiated manually before without `DependencyInjection`\r\n\r\n## Describe the solution you'd like\r\nI believe that this could be done by instantiating the `ApplicationContext` that loads up the `Container` and then use the `ApplicationContext` as a parameter for the `NestFactory.createMicroservice` method.\r\n\r\n## Teachability, Documentation, Adoption, Migration Strategy\r\nIn order to support backwards compatibility you could even allow both the current way in case the paramenter a Module or the following one in case it is an instance of an `ApplicationContext`\r\n```\r\nasync function bootstrap() {\r\n    const app = await NestFactory.createApplicationContext(AppModule);\r\n\r\n    const config = app.get(ConfigService);\r\n\r\n    const microservice = await NestFactory.createMicroservice(app, {\r\n        transport: Transport.RMQ,\r\n        options: {\r\n            urls: [\r\n                config.amqpUrl,\r\n            ],\r\n            queue: config.queue,\r\n            queueOptions: { durable: true },\r\n        },\r\n    });\r\n    ...\r\n}\r\n```\r\n## What is the motivation / use case for changing the behavior?\r\n- I believe this could improve the quality of the code. \r\n- Could be useful in order to add a single instance of a `LoggerService` via `DependecyInjection` and also allow setting `config` options on it in order to call external services like `Logstash` etc.",
+      "labels": [
+        "type: enhancement :wolf:",
+        "effort3: weeks",
+        "priority: low (4)"
+      ],
+      "state": "closed",
+      "created_at": "2019-06-05T17:04:19Z",
+      "comments": 16
+    },
+    {
+      "number": 2119,
+      "title": "Feature request: module autoloading without scanning every module and every provider",
+      "body": "## I'm submitting a...\r\n\r\n<pre><code>\r\n[ ] Regression <!--(a behavior that used to work and stopped working in a new release)-->\r\n[ ] Bug report\r\n[x] Feature request\r\n[ ] Documentation issue or request\r\n[ ] Support request => Please do not submit support request here, instead post your question on Stack Overflow.\r\n</code></pre>\r\n\r\n## Current behavior\r\n\r\nJust like [`nestjs/graphql`](https://github.com/nestjs/graphql/blob/master/lib/graphql.module.ts), people are doing fancy scanning to load specific classes (using `MetadataScanner` and `modulesContainer `), I don't think this is the best way to achieve this purpose. When you have a big project and several modules doing this scanning, your boss will be pissed off.\r\n\r\nThis is a huge waste of performance!\r\n\r\n\r\n## Expected behavior (proposal)\r\n\r\nSo could we have add two things:\r\n\r\n1. An new array to Module that tells Nest these are `Autoload Handlers`.\r\n2. A decorator that tells Nest this is a class needs to be handled by some `Autoload Handler`.\r\n\r\nBecause Nest itself have to traverse all modules (and providers) by design, when it sees this decorator, it just store them; when traversing finished, it will process them at once. \r\n\r\nMaybe looks like this:\r\n\r\n`my-resolver.resolver.ts`\r\n\r\n```typescript\r\nimport { Autoload, Injectable } from 'nestjs/nest';\r\nimport { AUTOLOAD_MY_MODULE } from './my-autoloader.autoloader';\r\n\r\n@Injectable()\r\n@Autoload(AUTOLOAD_MY_MODULE)\r\nexport class MyResolver {\r\n  // ...\r\n}\r\n```\r\n\r\n`my-autoloader.autoloader.ts`\r\n\r\n```typescript\r\nimport { Autoloader } from 'nestjs/common';\r\nimport { HandleAutoload } from 'nestjs/interfaces';\r\n\r\nconst AUTOLOAD_MY_MODULE = '__ AUTOLOAD_MY_MODULE__';\r\n\r\n@Autoloader(AUTOLOAD_MY_MODULE)\r\nexport class MyAutoloader implements HandleAutoload {\r\n  handleAutoload(instance, classRef) { }\r\n}\r\n```\r\n\r\n`my-module.module.ts`\r\n\r\n```typescript\r\n// ...\r\n\r\n@Module({\r\n  //...\r\n  'autoloader': [\r\n    MyAutoloader,\r\n  ],\r\n})\r\nexport class MyModule {\r\n  // ...\r\n}\r\n```\r\n\r\n\r\n## Minimal reproduction of the problem with instructions\r\n\r\nSee above.\r\n\r\n\r\n## What is the motivation / use case for changing the behavior?\r\n\r\nThe future of `Nest`.\r\n\r\n\r\n## Environment\r\n\r\n<pre><code>\r\nIrrelevant\r\n</code></pre>",
+      "labels": [
+        "type: feature :tada:",
+        "scope: core",
+        "effort3: weeks"
+      ],
+      "state": "closed",
+      "created_at": "2019-04-30T01:46:05Z",
+      "comments": 4
+    },
+    {
+      "number": 1627,
+      "title": "Middleware for Microservices",
+      "body": "<!--\r\nPLEASE HELP US PROCESS GITHUB ISSUES FASTER BY PROVIDING THE FOLLOWING INFORMATION.\r\n\r\nISSUES MISSING IMPORTANT INFORMATION MAY BE CLOSED WITHOUT INVESTIGATION.\r\n-->\r\n\r\n## I'm submitting a...\r\n<!-- \r\nPlease search GitHub for a similar issue or PR before submitting.\r\nCheck one of the following options with \"x\" -->\r\n<pre><code>\r\n[ ] Regression <!--(a behavior that used to work and stopped working in a new release)-->\r\n[ ] Bug report\r\n[x] Feature request\r\n[ ] Documentation issue or request\r\n[ ] Support request => Please do not submit support request here, instead post your question on Stack Overflow.\r\n</code></pre>\r\n\r\n## Current behavior\r\n<!-- Describe how the issue manifests. -->\r\nMiddleware exists for HTTP but not for Microservices.\r\n\r\n\r\n## Expected behavior\r\n<!-- Describe what the desired behavior would be. -->\r\nI would like to be able to create middleware functions for Microservices to introduce something like a request context for logging.\r\n\r\nExample:\r\n<pre><code>\r\nexport function MicroserviceMiddleware(context: ExecutionContext, next) {\r\n// .. do some stuff with the context\r\nnext()\r\n}\r\n</code></pre>\r\n\r\nThis is different to interceptors because it spans over all guards, interceptors and exception filters.\r\nOr ist there already another way to do this?\r\nThanks in advance\r\n\r\n## Environment\r\n\r\n<pre><code>\r\nNest version: 5.7.3\r\n<!-- Check whether this is still an issue in the most recent Nest version -->\r\n\r\n</code></pre>\r\n",
+      "labels": [
+        "type: feature :tada:",
+        "scope: microservices",
+        "effort3: weeks",
+        "priority: low (4)"
+      ],
+      "state": "open",
+      "created_at": "2019-03-11T07:52:21Z",
+      "comments": 22
+    },
+    {
+      "number": 1438,
+      "title": "Add dynamic routing",
+      "body": "<!--\r\nPLEASE HELP US PROCESS GITHUB ISSUES FASTER BY PROVIDING THE FOLLOWING INFORMATION.\r\n\r\nISSUES MISSING IMPORTANT INFORMATION MAY BE CLOSED WITHOUT INVESTIGATION.\r\n-->\r\n\r\n## I'm submitting a...\r\n<!-- \r\nPlease search GitHub for a similar issue or PR before submitting.\r\nCheck one of the following options with \"x\" -->\r\n<pre><code>\r\n[ ] Regression <!--(a behavior that used to work and stopped working in a new release)-->\r\n[ ] Bug report\r\n[x] Feature request\r\n[ ] Documentation issue or request\r\n[ ] Support request => Please do not submit support request here, instead post your question on Stack Overflow.\r\n</code></pre>\r\n\r\n## Current behavior\r\nAt the moment there is no way to register a route dynamically except by using the internal HTTP / Fastify / Express instance (related #124):\r\n\r\n```ts\r\n\r\nconst expressInstance = express();\r\nexpressInstance.use(morgan('dev'));\r\nconst app = NestFactory.create(ApplicationModule, expressInstance);\r\nexpressInstance.get('/foo', function (req, res) {\r\n    res.send('bar');\r\n})\r\n\r\n```\r\n\r\nThe problem with this approach is, Nest does internally not recognize this route. Therefore it will not show up in the e.g. swagger integration.\r\n\r\n\r\n## Expected behavior\r\nI wish to have a dynamic router as part of the public Nest API, or at least a way to tell Nest to use an external route inside its router registry.\r\n\r\n## What is the motivation / use case for changing the behavior?\r\nnestjs/terminus routes do not get registered because it directly modifies the HTTP instance. Therefore there is no Swagger integration or compatibility with middleware.\r\n\r\nRelated: [nest/terminus#32](https://github.com/nestjs/terminus/issues/32) [nest/terminus#33](https://github.com/nestjs/terminus/issues/33)\r\n\r\nother integrations such as @zMotivat0r for example uses this rather \"hacky\" workaround (sorry :P): \r\nhttps://github.com/nestjsx/crud/blob/e255120b26dd8ca0eae9c7ec9dac4f893051f447/src/crud.module.ts#L5-L15\r\nor nest-router by @shekohex uses what I would consider the internal API:\r\n\r\nhttps://github.com/shekohex/nest-router/blob/3759c688b285792d7889b52f75fffb0e86d4dd54/src/router.module.ts#L53-L56\r\n\r\n\r\n\r\n\r\n## Environment\r\n\r\n<pre><code>\r\nNest version: 5.x.x\r\n<!-- Check whether this is still an issue in the most recent Nest version -->\r\n \r\nFor Tooling issues:\r\n- Node version: XX  <!-- run `node --version` -->\r\n- Platform:  <!-- Mac, Linux, Windows -->\r\n\r\nOthers:\r\n<!-- Anything else relevant?  Operating system version, IDE, package manager, ... -->\r\n</code></pre>\r\n",
+      "labels": [
+        "type: question \ud83d\ude4c",
+        "scope: core",
+        "effort3: weeks",
+        "priority: low (4)"
+      ],
+      "state": "open",
+      "created_at": "2019-01-12T20:10:24Z",
+      "comments": 32
+    }
+  ]
+}
